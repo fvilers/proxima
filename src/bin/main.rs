@@ -1,16 +1,23 @@
+use proxima::Opt;
 use proxima::ThreadPool;
 use std::io::prelude::*;
-use std::net::TcpListener;
-use std::net::TcpStream;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::str::FromStr;
+use structopt::StructOpt;
 
 fn main() {
-    // TODO: use configured address and port instead of 127.0.0.1:8080
-    // TODO: gracefully handle error instead of unwrap()
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    // TODO: merge options with configuration file
+    let options = Opt::from_args();
 
-    // TODO: use configured thread pool size instead of 4
     // TODO: gracefully handle error instead of unwrap()
-    let pool = ThreadPool::new(4).unwrap();
+    let ip_addr = Ipv4Addr::from_str(&options.address).unwrap();
+    let socket = SocketAddr::new(IpAddr::V4(ip_addr), options.port);
+
+    // TODO: gracefully handle error instead of unwrap()
+    let listener = TcpListener::bind(socket).unwrap();
+
+    // TODO: gracefully handle error instead of unwrap()
+    let pool = ThreadPool::new(options.thread_pool_size).unwrap();
 
     for stream in listener.incoming() {
         // TODO: gracefully handle error instead of unwrap()
