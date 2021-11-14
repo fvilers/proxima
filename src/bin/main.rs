@@ -1,3 +1,4 @@
+use proxima::ThreadPool;
 use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -7,12 +8,20 @@ fn main() {
     // TODO: gracefully handle error instead of unwrap()
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
 
+    // TODO: use configured thread pool size instead of 4
+    // TODO: gracefully handle error instead of unwrap()
+    let pool = ThreadPool::new(4).unwrap();
+
     for stream in listener.incoming() {
         // TODO: gracefully handle error instead of unwrap()
         let stream = stream.unwrap();
 
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
+
+    println!("Shutting down.");
 }
 
 fn handle_connection(mut stream: TcpStream) {
