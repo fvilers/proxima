@@ -2,26 +2,47 @@ use proxima::Opt;
 use proxima::ThreadPool;
 use std::io::prelude::*;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::process;
 use std::str::FromStr;
 use structopt::StructOpt;
 
+#[derive(Debug, Clone)]
+struct ApplicationError<'a> {
+    msg: &'a str,
+}
+
 fn main() {
+    process::exit(match app() {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("ApplicationError: {:?}", err.msg);
+            1
+        }
+    });
+}
+
+fn app<'a>() -> Result<(), ApplicationError<'a>> {
     // TODO: merge options with configuration file
     let options = Opt::from_args();
-
-    // TODO: gracefully handle error instead of unwrap()
-    let ip_addr = Ipv4Addr::from_str(&options.address).unwrap();
+    let ip_addr = Ipv4Addr::from_str(&options.address).map_err(|_| ApplicationError {
+        msg: "Invalid IP Address",
+    })?;
     let socket = SocketAddr::new(IpAddr::V4(ip_addr), options.port);
-
-    // TODO: gracefully handle error instead of unwrap()
-    let listener = TcpListener::bind(socket).unwrap();
-
-    // TODO: gracefully handle error instead of unwrap()
-    let pool = ThreadPool::new(options.thread_pool_size).unwrap();
+    let listener = TcpListener::bind(socket).map_err(|_| ApplicationError {
+        msg: "Unable to bind to socket",
+    })?;
+    let pool = ThreadPool::new(options.thread_pool_size).map_err(|_| ApplicationError {
+        msg: "Unable to initialize the thread pool",
+    })?;
 
     for stream in listener.incoming() {
-        // TODO: gracefully handle error instead of unwrap()
-        let stream = stream.unwrap();
+        let stream = match stream {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Connection failed: {}", e);
+                continue;
+            }
+        };
 
         pool.execute(|| {
             handle_connection(stream);
@@ -29,14 +50,20 @@ fn main() {
     }
 
     println!("Shutting down.");
+    Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) {
     // TODO: handle requests of size over 1024 bytes
     let mut buffer = [0; 1024];
 
-    // TODO: gracefully handle error instead of unwrap()
-    stream.read(&mut buffer).unwrap();
+    match stream.read(&mut buffer) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Failed to read stream: {}", e);
+            return;
+        }
+    }
 
     let contents = "Hello world!";
     let response = format!(
@@ -45,7 +72,19 @@ fn handle_connection(mut stream: TcpStream) {
         contents
     );
 
-    // TODO: gracefully handle error instead of unwrap()
-    stream.write(response.as_bytes()).unwrap();
-    stream.flush().unwrap();
+    match stream.write(response.as_bytes()) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Failed to write to stream: {}", e);
+            return;
+        }
+    }
+
+    match stream.flush() {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Failed to flush stream: {}", e);
+            return;
+        }
+    }
 }
