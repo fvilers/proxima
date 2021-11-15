@@ -11,10 +11,28 @@ struct ApplicationError<'a> {
     msg: &'a str,
 }
 
+// This code is a 'bin' folder and filed named main ..
+// -> the binary will be called 'main', which is probably what you want.
+// You don't need a bin folder here, just put the main.rs in src,
+// and your binary will be called 'proxima'.
+
+// General comment: Rust supports async-await / Futures now,
+// this could be an interesting iteration to migrate it.
+
+// You could add automated build / test on the repo with a GitHub action.
+// Also, don't hesitate to run 'cargo clippy' for static analysis of your code,
+// and some usefull recommandation.
+// To apply standard formatting: 'cargo fmt -all'
+
+// Docker: do you want to run this is the smallest & most secure Docker
+// image possible ? I have the config for that ;-)
+
 fn main() {
     process::exit(match app() {
         Ok(_) => 0,
         Err(err) => {
+            // You could use the log & pretty_env_logger crates
+            // for nicer, configurable logging.
             eprintln!("ApplicationError: {:?}", err.msg);
             1
         }
@@ -24,6 +42,9 @@ fn main() {
 fn app<'a>() -> Result<(), ApplicationError<'a>> {
     // TODO: merge options with configuration file
     let options = Opt::from_args();
+
+    // You could use the dotenv crate for environment-specific settings,
+    // and transparent support for .env files / environment vars.
     let ip_addr = Ipv4Addr::from_str(&options.address).map_err(|_| ApplicationError {
         msg: "Invalid IP Address",
     })?;
@@ -49,6 +70,9 @@ fn app<'a>() -> Result<(), ApplicationError<'a>> {
         });
     }
 
+    // You could look at handling kill / ctrl-c signals
+    // (look at the ctrlc crate)
+
     println!("Shutting down.");
     Ok(())
 }
@@ -72,6 +96,9 @@ fn handle_connection(mut stream: TcpStream) {
         contents
     );
 
+    // Using the ? syntax would make the code cleaner,
+    // (function needs to return a Result type)
+    // you could then log in the calling function.
     match stream.write(response.as_bytes()) {
         Ok(_) => {}
         Err(e) => {
@@ -84,7 +111,6 @@ fn handle_connection(mut stream: TcpStream) {
         Ok(_) => {}
         Err(e) => {
             eprintln!("Failed to flush stream: {}", e);
-            return;
         }
     }
 }
