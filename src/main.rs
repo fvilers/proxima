@@ -23,6 +23,12 @@ struct ApplicationError<'a> {
 // image possible ? I have the config for that ;-)
 
 fn main() {
+    ctrlc::set_handler(move || {
+        println!("Exit signal received, exiting process now");
+        process::exit(0);
+    })
+    .expect("Error setting exit signal handler");
+
     process::exit(match app() {
         Ok(_) => 0,
         Err(err) => {
@@ -64,9 +70,6 @@ fn app<'a>() -> Result<(), ApplicationError<'a>> {
             handle_connection(stream);
         });
     }
-
-    // You could look at handling kill / ctrl-c signals
-    // (look at the ctrlc crate)
 
     println!("Shutting down.");
     Ok(())
