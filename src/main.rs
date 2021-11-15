@@ -11,11 +11,6 @@ struct ApplicationError<'a> {
     msg: &'a str,
 }
 
-// This code is a 'bin' folder and filed named main ..
-// -> the binary will be called 'main', which is probably what you want.
-// You don't need a bin folder here, just put the main.rs in src,
-// and your binary will be called 'proxima'.
-
 // General comment: Rust supports async-await / Futures now,
 // this could be an interesting iteration to migrate it.
 
