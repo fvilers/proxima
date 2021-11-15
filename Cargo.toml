@@ -3,11 +3,9 @@ name = "proxima"
 description = "A lightweight HTTP server written in Rust"
 version = "0.1.0"
 authors = ["Fabian Vilers <fabian.vilers@dev-one.com>"]
-# Niiicccceee ;-)
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# you could just target "0.3"
-structopt = "0.3.13"
+structopt = "0.3"
