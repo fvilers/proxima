@@ -19,9 +19,6 @@ struct ApplicationError<'a> {
 // and some usefull recommandation.
 // To apply standard formatting: 'cargo fmt -all'
 
-// Docker: do you want to run this is the smallest & most secure Docker
-// image possible ? I have the config for that ;-)
-
 fn main() {
     ctrlc::set_handler(move || {
         println!("Exit signal received, exiting process now");
