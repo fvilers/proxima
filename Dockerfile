@@ -1,21 +1,29 @@
-FROM rust:1.56.1 as builder
-WORKDIR /usr/src/
+ARG BINARY_NAME=proxima
 
-# Download the target for static linking.
-RUN rustup target add x86_64-unknown-linux-musl
+FROM clux/muslrust:nightly as build
+ARG BINARY_NAME
 
-# Create a dummy project and build the app's dependencies.
-RUN USER=root cargo new proxima
-WORKDIR /usr/src/proxima
-COPY Cargo.toml Cargo.lock ./
-RUN cargo build --release
+# Build dummy main with the project's Cargo lock and toml
+# This is a docker trick in order to avoid downloading and building
+# dependencies when lock and toml not is modified.
+COPY Cargo.lock .
+COPY Cargo.toml .
+RUN mkdir src \
+    && echo "fn main() {print!(\"Dummy main\");} // dummy file" > src/main.rs
+RUN set -x && cargo build --target x86_64-unknown-linux-musl --release
+RUN set -x && rm target/x86_64-unknown-linux-musl/release/deps/proxima*
 
-# Copy the source and build the application.
+# copy app source tree & build for release
 COPY src ./src
-RUN cargo install --target x86_64-unknown-linux-musl --path .
+RUN set -x && cargo build --target x86_64-unknown-linux-musl --release
+RUN strip ./target/x86_64-unknown-linux-musl/release/$BINARY_NAME
+RUN mkdir -p /out
+RUN set -x && cp target/x86_64-unknown-linux-musl/release/$BINARY_NAME /out/
 
-FROM scratch
-COPY --from=builder /usr/local/cargo/bin/proxima .
-USER 1000
+# final base
+FROM gcr.io/distroless/static:nonroot
+ARG BINARY_NAME
+
+COPY --chown=nonroot:nonroot --from=build /out/$BINARY_NAME /
 EXPOSE 80
-CMD ["./proxima", "-a", "0.0.0.0", "-p", "80"]
+CMD ["/proxima", "-a", "0.0.0.0", "-p", "80"]
