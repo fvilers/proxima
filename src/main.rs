@@ -1,14 +1,18 @@
+extern crate dotenv;
+extern crate pretty_env_logger;
+
+#[macro_use]
+extern crate log;
+
+use dotenv::dotenv;
 use proxima::Opt;
 use proxima::ThreadPool;
+use std::env;
 use std::io::prelude::*;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::process;
 use std::str::FromStr;
 use structopt::StructOpt;
-
-extern crate pretty_env_logger;
-#[macro_use]
-extern crate log;
 
 #[derive(Debug, Clone)]
 struct ApplicationError<'a> {
@@ -24,6 +28,7 @@ struct ApplicationError<'a> {
 // To apply standard formatting: 'cargo fmt -all'
 
 fn main() {
+    dotenv().ok();
     pretty_env_logger::init();
     info!("Proxima starting...");
 
@@ -49,13 +54,15 @@ fn main() {
 fn app<'a>() -> Result<(), ApplicationError<'a>> {
     // TODO: merge options with configuration file
     let options = Opt::from_args();
-
-    // You could use the dotenv crate for environment-specific settings,
-    // and transparent support for .env files / environment vars.
-    let ip_addr = Ipv4Addr::from_str(&options.address).map_err(|_| ApplicationError {
+    let address = env::var("ADDRESS").unwrap_or(options.address);
+    let ip_addr = Ipv4Addr::from_str(&address).map_err(|_| ApplicationError {
         msg: "Invalid IP Address",
     })?;
-    let socket = SocketAddr::new(IpAddr::V4(ip_addr), options.port);
+    let port = match env::var("PORT") {
+        Ok(p) => u16::from_str(&p).unwrap_or(options.port),
+        Err(_) => options.port,
+    };
+    let socket = SocketAddr::new(IpAddr::V4(ip_addr), port);
     let listener = TcpListener::bind(socket).map_err(|_| ApplicationError {
         msg: "Unable to bind to socket",
     })?;

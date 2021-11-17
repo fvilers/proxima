@@ -6,5 +6,5 @@
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust"
   },
-  "cSpell.words": ["structopt"]
+  "cSpell.words": ["dotenv", "structopt"]
 }
