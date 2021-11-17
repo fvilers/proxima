@@ -6,6 +6,10 @@ use std::process;
 use std::str::FromStr;
 use structopt::StructOpt;
 
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
+
 #[derive(Debug, Clone)]
 struct ApplicationError<'a> {
     msg: &'a str,
@@ -20,18 +24,23 @@ struct ApplicationError<'a> {
 // To apply standard formatting: 'cargo fmt -all'
 
 fn main() {
+    pretty_env_logger::init();
+    info!("Proxima starting...");
+
     ctrlc::set_handler(move || {
-        println!("Exit signal received, exiting process now");
+        debug!("Exit signal received");
+        info!("Proxima exiting...");
         process::exit(0);
     })
     .expect("Error setting exit signal handler");
 
     process::exit(match app() {
-        Ok(_) => 0,
+        Ok(_) => {
+            info!("Proxima exiting...");
+            0
+        }
         Err(err) => {
-            // You could use the log & pretty_env_logger crates
-            // for nicer, configurable logging.
-            eprintln!("ApplicationError: {:?}", err.msg);
+            error!("ApplicationError: {:?}", err.msg);
             1
         }
     });
@@ -58,18 +67,17 @@ fn app<'a>() -> Result<(), ApplicationError<'a>> {
         let stream = match stream {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Connection failed: {}", e);
+                error!("Connection failed: {}", e);
                 continue;
             }
         };
 
         pool.execute(|| match handle_connection(stream) {
             Ok(()) => (),
-            Err(_) => eprintln!("Error handling connection"),
+            Err(e) => error!("Error handling connection: {}", e),
         });
     }
 
-    println!("Shutting down.");
     Ok(())
 }
 

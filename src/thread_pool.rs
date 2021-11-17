@@ -1,3 +1,4 @@
+use log::debug;
 use std::fmt;
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -19,6 +20,7 @@ pub struct ThreadPool {
 impl ThreadPool {
     pub fn new(size: usize) -> Result<ThreadPool, PoolCreationError> {
         if size == 0 {
+            debug!("Cannot create pool with size {}", size);
             return Err(PoolCreationError);
         }
 
@@ -27,6 +29,7 @@ impl ThreadPool {
         let mut workers = Vec::with_capacity(size);
 
         for id in 0..size {
+            debug!("Creating worker {}", id);
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
@@ -46,18 +49,19 @@ impl ThreadPool {
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
-        println!("Sending terminate message to all workers.");
+        debug!("Sending terminate message to all workers.");
 
         // Using two loops to avoid deadlock
 
+        debug!("Sending termination message to workers");
         for _ in &self.workers {
             self.sender.send(Message::Terminate).unwrap();
         }
 
-        println!("Shutting down all workers.");
+        debug!("Shutting down all workers.");
 
         for worker in &mut self.workers {
-            println!("Shutting down worker {}", worker.id);
+            debug!("Shutting down worker {}", worker.id);
 
             if let Some(thread) = worker.thread.take() {
                 // TODO: gracefully handle error instead of unwrap()
@@ -93,11 +97,11 @@ impl Worker {
 
             match message {
                 Message::NewJob(job) => {
-                    println!("Worker {} got a job; executing.", id);
+                    debug!("Worker {} got a job; executing.", id);
                     job();
                 }
                 Message::Terminate => {
-                    println!("Worker {} was told to terminate.", id);
+                    debug!("Worker {} was told to terminate.", id);
                     break;
                 }
             }
