@@ -14,6 +14,9 @@ RUN cargo build --release
 COPY src ./src
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
+# Discard symbols from compiled file
+RUN strip /usr/local/cargo/bin/proxima
+
 FROM scratch
 COPY --from=builder /usr/local/cargo/bin/proxima .
 USER 1000
