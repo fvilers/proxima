@@ -63,8 +63,9 @@ fn app<'a>() -> Result<(), ApplicationError<'a>> {
             }
         };
 
-        pool.execute(|| {
-            handle_connection(stream);
+        pool.execute(|| match handle_connection(stream) {
+            Ok(()) => (),
+            Err(_) => eprintln!("Error handling connection"),
         });
     }
 
@@ -72,17 +73,11 @@ fn app<'a>() -> Result<(), ApplicationError<'a>> {
     Ok(())
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection(mut stream: TcpStream) -> Result<(), std::io::Error> {
     // TODO: handle requests of size over 1024 bytes
     let mut buffer = [0; 1024];
 
-    match stream.read(&mut buffer) {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("Failed to read stream: {}", e);
-            return;
-        }
-    }
+    stream.read(&mut buffer)?;
 
     let contents = "Hello world!";
     let response = format!(
@@ -91,21 +86,7 @@ fn handle_connection(mut stream: TcpStream) {
         contents
     );
 
-    // Using the ? syntax would make the code cleaner,
-    // (function needs to return a Result type)
-    // you could then log in the calling function.
-    match stream.write(response.as_bytes()) {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("Failed to write to stream: {}", e);
-            return;
-        }
-    }
-
-    match stream.flush() {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("Failed to flush stream: {}", e);
-        }
-    }
+    stream.write(response.as_bytes())?;
+    stream.flush()?;
+    Ok(())
 }
